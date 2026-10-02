@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera KV Toggle & Feed</title>
+    <style>
+        body { 
+        font-family: sans-serif; text-align: center; margin-top: 50px; background: #f0f2f5; }
+
+        .card { 
+        background: white; padding: 40px; display: inline-block; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); min-width: 340px; max-width: 500px; }
+        
+        
+        button { background: #0070f3; color: white; border: none; padding: 14px 28px; font-size: 16px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: all 0.2s ease; margin-bottom: 20px; }
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        
+        /* Image container styling */
+        .image-container { width: 100%; height: 250px; background: #222; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; border: 3px solid black; position: relative; transition: border-color 0.3s ease; }
+        .image-container img { width: 100%; height: 100%; object-fit: cover; }
+        
+        /* Visual CSS Spinner */
+        .spinner { display: none; width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; position: absolute; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .status-box { padding: 15px; border-radius: 8px; background: #fafafa; border: 1px solid #eaeaea; }
+        .label { font-size: 14px; color: #666; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
+        #cam-display { font-weight: bold; font-size: 24px; text-transform: uppercase; color: red }
+    </style>
+    </head>
+    <body>
+    <div class="card">
+        <h2>Parker's Post</h2>
+        
+        <div class="image-container" id="img-container">
+        <div class="spinner" id="loading-spinner"></div>
+        <img id="cam-image" src="" alt="Camera Feed State">
+        </div>
+
+        <button id="toggle-btn">Check</button>
+
+        <div class="status-box">
+        <div class="label">Current KV State ("cam")</div>
+        <span id="cam-display">${camState}</span>
+        </div>
+    </div>
+
+
+    <script>
+        const button = document.getElementById('toggle-btn');
+        const display = document.getElementById('cam-display');
+        const camImage = document.getElementById('cam-image');
+        const spinner = document.getElementById('loading-spinner');
+
+
+        button.addEventListener('click', async () => {
+        // 1. Put UI into a transitional loading state
+            button.disabled = true;
+            button.innerText = 'Communicating...';
+        
+            // Mask the image and display spinner
+            camImage.style.opacity = '0.3';
+            spinner.style.display = 'block';
+            
+            // Hide the text status value while working
+            display.innerText = '...'; 
+            display.style.color = '#888';
+            imgContainer.style.borderColor = '#ccc';
+
+    try {
+            // 2. Submit the mutation payload to KV
+            const response = await fetch('/api/toggle-cam', { method: 'POST' });
+            await response.json();
+
+            const checkResponse = await fetch('/api/cam-status');
+        } catch (err) {
+            alert('Network communication failure occurred.');
+            // Recover system values if an exception drops
+            const checkResponse = await fetch('/api/cam-status').catch(() => null);
+            const recoveredState = checkResponse ? await checkResponse.text() : 'off';
+            revealUI(recoveredState, recoveredState === 'on' ? '#22c55e' : '#ef4444', recoveredState === 'on' ? '🔴 Turn Cam Off' : '🟢 Turn Cam On');
+        }
+        });
+    </script>
+    </body>
+</html>
